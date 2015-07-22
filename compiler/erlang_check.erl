@@ -474,10 +474,9 @@ process_rebar_config(Path, Terms, Config) ->
     case Config of
         no_config ->
             Includes = [ {i, absname(Path, Dir)}
-                         || Dir <- ["..",
-                                    "apps",
+                         || Dir <- ["apps",
                                     "include"] ] ++
-            [ {i, absname(Path, LibDir)} || LibDir <- LibDirs],
+            [ {i, absname(Path, filename:append(SubDir, "include"))} || SubDir <- SubDirs],
 
             Opts = ErlOpts ++ Includes,
             % If "warnings_as_errors" is left in, rebar sometimes prints the
@@ -506,8 +505,7 @@ load_makefiles([Makefile|_Rest]) ->
     Path = filename:dirname(Makefile),
     code:add_pathsa([absname(Path, "ebin")]),
     code:add_pathsa(filelib:wildcard(absname(Path, "deps") ++ "/*/ebin")),
-    {opts, [{i, absname(Path, "..")},  % Needed for weird app structures
-            {i, absname(Path, "include")},
+    {opts, [{i, absname(Path, "include")},
             {i, absname(Path, "deps")}]}.
 
 %%------------------------------------------------------------------------------
