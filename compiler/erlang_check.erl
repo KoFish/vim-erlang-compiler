@@ -468,19 +468,16 @@ process_rebar_config(Path, Terms, Config) ->
     code:add_pathsa(filelib:wildcard(absname(Path, DepsDir) ++ "/*/ebin")),
 
     % sub_dirs -> code_path
-    [ code:add_pathsa(filelib:wildcard(absname(Path, SubDir) ++ "/*/ebin"))
-      || SubDir <- SubDirs ++ LibDirs ],
+    [ code:add_pathsa(filelib:wildcard(absname(Path, SubDir) ++ "/ebin"))
+      || SubDir <- SubDirs ],
 
     case Config of
         no_config ->
-            SubDirIncludes = [ filelib:wildcard(absname(Path, SubDir) ++
-                                                "/*/include")
-                               || SubDir <- SubDirs],
             Includes =
             [ {i, absname(Path, Dir)}
               || Dir <- ["apps", "include"] ] ++
-            [ {i, SubDirInclude}
-              || SubDirInclude <- lists:flatten(SubDirIncludes)],
+            [ {i, absname(Path, filename:append(SubDir, "include"))}
+              || SubDir <- SubDirs ],
 
             Opts = ErlOpts ++ Includes,
             % If "warnings_as_errors" is left in, rebar sometimes prints the
