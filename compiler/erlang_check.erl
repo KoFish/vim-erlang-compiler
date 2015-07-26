@@ -464,7 +464,9 @@ process_rebar_config(Path, Terms, Config) ->
     code:add_pathsa([absname(Path, "ebin")]),
 
     % deps -> code_path
-    code:add_pathsa(filelib:wildcard(absname(Path, DepsDir) ++ "/*/ebin")),
+    DedupedDeps = deduplicate_deps(filelib:wildcard(absname(Path, DepsDir)
+                                                    ++ "/*/ebin")),
+    code:add_pathsa(DedupedDeps),
 
     % sub_dirs -> code_path
     [ code:add_pathsa(filelib:wildcard(absname(Path, SubDir) ++ "/ebin"))
@@ -495,6 +497,52 @@ process_rebar_config(Path, Terms, Config) ->
         _ ->
             Config
     end.
+
+
+%%------------------------------------------------------------------------------
+%% @doc Remove duplicated dependency directories from different locations and
+%% returns an updated list of dependencies which are safe to include in the
+%% code path without conflict.  Basically if an app is already included in the
+%% code path, it will ignore any further references to the same app.
+%% @end
+%%------------------------------------------------------------------------------
+-spec deduplicate_deps([string()]) -> [string()].
+deduplicate_deps(Deps) ->
+    CodePaths = code:get_path(),
+    CodePathApps = [get_dep_app_name(CP) || CP <- CodePaths],
+    [Dep || Dep <- Deps,
+            not(lists:member(get_dep_app_name(Dep), CodePathApps))].
+
+
+%%------------------------------------------------------------------------------
+%% @doc Extract just the application name from a path string. This assumes the
+%% end of the provided path is "ebin", and if it is, it extracts the parent
+%% directory of "ebin", and returns that directory name, with any version
+%% suffix also removed. For example: "/path/to/my_app-1.2.3/ebin" will return
+%% "my_app".
+%% If DepPath does not end in "ebin", then no assumptions are made, and the
+%% provided path is returned unchanged.
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_dep_app_name(string()) -> string().
+get_dep_app_name(DepPath) ->
+    case filename:basename(DepPath) of
+        "ebin" ->
+            AppAndVsn = filename:basename(filename:dirname(DepPath)),
+            strip_app_version(AppAndVsn);
+        _ ->
+            DepPath
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc If an application's directory is something like "myapp-1.2.3", this
+%% will return "myapp". If it does not contain the version, it'll just return
+%% the app name.
+%% @end
+%%------------------------------------------------------------------------------
+-spec strip_app_version(string()) -> string().
+strip_app_version(AppDirName) ->
+    hd(string:tokens(AppDirName, "-")).
 
 %%------------------------------------------------------------------------------
 %% @doc Set code paths and options for a simple Makefile
