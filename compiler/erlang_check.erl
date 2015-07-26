@@ -457,7 +457,6 @@ process_rebar_config(Path, Terms, Config) ->
     %     * include/ => apps -> include
 
     DepsDir = proplists:get_value(deps_dir, Terms, "deps"),
-    LibDirs = proplists:get_value(lib_dirs, Terms, []),
     SubDirs = proplists:get_value(sub_dirs, Terms, []),
     ErlOpts = proplists:get_value(erl_opts, Terms, []),
 
